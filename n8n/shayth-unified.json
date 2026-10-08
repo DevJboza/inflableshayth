@@ -1,0 +1,317 @@
+{
+  "name": "INFLABLES SHAYTH · Campañas + Respuestas (Unificado)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "0b316f4c-6ad7-4dc6-bc3b-3c4232a29ebc",
+      "name": "Cada 10 minutos · 1 correo",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SHAYTH_APP_URL}}/api/n8n/jobs/claim",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-integration-secret",
+              "value": "={{$env.SHAYTH_INTEGRATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "{\"limit\":1}",
+        "options": {}
+      },
+      "id": "543861f4-e076-4165-9f8b-2251b47823d9",
+      "name": "Reclamar trabajos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -80,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "id": "269f15f0-7a2e-40a1-a71e-d4cca4acb361",
+      "name": "Separar trabajos",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        144,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.email}}",
+        "subject": "={{$json.subject}}",
+        "message": "={{String($json.html || \"\").replaceAll(\"{{institucion}}\",String($json.institution || \"\")).replaceAll(\"{{contacto}}\",String($json.contact || \"\")).replaceAll(\"{{provincia}}\",String($json.province || \"\")).replaceAll(\"{{empresa}}\",\"Inflables Shayth\")}}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Inflables Shayth"
+        }
+      },
+      "id": "8ebf3915-207c-4248-9133-6d9f0c958a7a",
+      "name": "Enviar con Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        368,
+        -480
+      ],
+      "webhookId": "407c1004-a07f-4323-87f0-18b2f3644113",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eP8PRBsZMqkEKSK2",
+          "name": "Gmail account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SHAYTH_APP_URL}}/api/n8n/jobs/report",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-integration-secret",
+              "value": "={{$env.SHAYTH_INTEGRATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({jobId: $('Separar trabajos').item.json.id, status: 'sent', gmailMessageId: $json.id})}}",
+        "options": {}
+      },
+      "id": "cf1005d6-50f5-49f2-ad04-a44f0c74c7ab",
+      "name": "Reportar enviado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        576,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "in:inbox newer_than:7d"
+        },
+        "options": {}
+      },
+      "id": "b3935288-252a-45cb-a77e-1418016c2799",
+      "name": "Nuevas respuestas Gmail",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        -16
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eP8PRBsZMqkEKSK2",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SHAYTH_APP_URL}}/api/n8n/replies",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-integration-secret",
+              "value": "={{$env.SHAYTH_INTEGRATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({gmailMessageId:$json.id,threadId:$json.threadId,from:(typeof $json.from === \"string\" ? $json.from : $json.from?.value?.[0]?.address) || $json.From || $json.headers?.from || \"\",subject:$json.subject || $json.Subject || $json.headers?.subject || \"(Sin asunto)\",bodyText:$json.textPlain || $json.text || $json.body?.text || $json.snippet || \"\",receivedAt:new Date($json.date || $json.headers?.date || Date.now()).toISOString()})}}",
+        "options": {}
+      },
+      "id": "2f9b37a2-b613-4023-ad9f-172cc4b397ba",
+      "name": "Registrar respuesta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -32,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SHAYTH_APP_URL}}/api/n8n/jobs/report",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-integration-secret",
+              "value": "={{$env.SHAYTH_INTEGRATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({jobId:$(\"Separar trabajos\").item.json.id,status:\"failed\",error:String($json.error?.message || $json.message || \"Error en Gmail\")})}}",
+        "options": {}
+      },
+      "id": "4eec7299-9204-4a83-abc6-e0bbdde5010c",
+      "name": "Reportar error de envío",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        576,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1 · CAMPAÑAS SALIENTES\nConsulta la cola de trabajos de la PWA (Supabase vía API), envía 1 correo cada 10 minutos y reporta el resultado.\n\n**Antes de activar:** definir `SHAYTH_APP_URL`, `SHAYTH_INTEGRATION_SECRET` en n8n y autorizar Gmail.\n\n**Atención:** no ejecutar en paralelo el antiguo workflow `campaign-worker.json`.",
+        "height": 220,
+        "width": 580
+      },
+      "id": "acc2d936-ccd3-48f2-9f4e-c2e43ba8cae9",
+      "name": "Guía · campañas",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        -864
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2 · RESPUESTAS ENTRANTES\nLee nuevos correos de Gmail y envía sus datos a `/api/n8n/replies`.\n\nLa API de la PWA debe vincular cada mensaje a una campaña y descartar los que no correspondan.\n\n**Atención:** no ejecutar en paralelo el antiguo workflow `gmail-replies.json`.",
+        "height": 205,
+        "width": 620
+      },
+      "id": "63b4a2fa-f2ef-49ec-a628-14ca1535044b",
+      "name": "Guía · respuestas",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Reclamar trabajos": {
+      "main": [
+        [
+          {
+            "node": "Separar trabajos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar trabajos": {
+      "main": [
+        [
+          {
+            "node": "Enviar con Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar con Gmail": {
+      "main": [
+        [
+          {
+            "node": "Reportar enviado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reportar error de envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cada 10 minutos · 1 correo": {
+      "main": [
+        [
+          {
+            "node": "Reclamar trabajos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nuevas respuestas Gmail": {
+      "main": [
+        [
+          {
+            "node": "Registrar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "9b4c5f07-d869-4f52-ac9b-514082986fba",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "728220cc2283d80caadb7bfc405cbba1561c0618ffeed5d966dd6f98a4e382a4"
+  },
+  "nodeGroups": [],
+  "id": "L4IbOFHaeiQhpNa3",
+  "tags": []
+}
