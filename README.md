@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shayth Campaign Center
 
-## Getting Started
+Panel privado para el CRM y las campañas por Gmail de Inflables Shayth. Usa Next.js App Router, TypeScript, PostgreSQL/Supabase y n8n.
 
-First, run the development server:
+## Puesta en marcha
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Copia `.env.example` a `.env.local` y completa `DATABASE_URL`, `ADMIN_PASSWORD`, un `SESSION_SECRET` aleatorio de al menos 32 caracteres y un `N8N_INTEGRATION_SECRET` distinto.
+2. En Supabase SQL Editor ejecuta `supabase/migrations/0001_initial.sql`.
+3. Coloca el logo oficial sin modificar en `public/logo.png` (PNG cuadrado de 512 × 512 o mayor). El manifest, acceso y navegación ya usan esa ruta.
+4. Ejecuta `npm run dev` y abre `http://localhost:3000`.
+5. Importa `n8n/campaign-worker.json` y `n8n/gmail-replies.json`. En n8n configura `SHAYTH_APP_URL`, `SHAYTH_INTEGRATION_SECRET` y las credenciales OAuth de Gmail; reemplaza el marcador de credencial y activa ambos workflows.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Producción en Vercel
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Crea el proyecto desde este repositorio, carga las mismas variables de entorno y despliega. Los secretos son exclusivos del servidor y nunca deben usar el prefijo `NEXT_PUBLIC_`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## CSV
 
-## Learn More
+Se reconocen encabezados en español (`nombre`, `correo`, `telefono`, `provincia`, `canton`, `contacto`, `tipo`, `estado`, `notas`) o equivalentes en inglés. Los correos duplicados se omiten.
 
-To learn more about Next.js, take a look at the following resources:
+## Contrato n8n
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `POST /api/n8n/jobs/claim` reclama hasta 25 trabajos con `x-integration-secret` y bloqueo contra dobles reclamos.
+- `POST /api/n8n/jobs/report` recibe `jobId`, `status`, `gmailMessageId` y `error`. `uncertain` evita un reenvío inseguro; errores de autenticación o límites pausan la campaña.
+- `POST /api/n8n/replies` registra respuestas reales, evita duplicados y actualiza la institución.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Un mensaje aceptado por Gmail se registra como enviado, nunca como entregado. No se usan píxeles de seguimiento.
 
-## Deploy on Vercel
+## Verificación
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Ejecuta `npm run lint`, `npm run typecheck`, `npm run test` y `npm run build`.
