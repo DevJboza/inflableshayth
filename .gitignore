@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# original brand source kept locally; deployed copy lives in public/
+/Logo.png
