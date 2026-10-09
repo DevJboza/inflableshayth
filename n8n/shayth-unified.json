@@ -1,7 +1,15 @@
 {
-  "name": "INFLABLES SHAYTH · Campañas + Respuestas (Unificado)",
+  "name": "Inflables Shayth | Campanas + Gmail + Catalogo PDF + Respuestas",
   "nodes": [
     {
+      "id": "schedule",
+      "name": "Cada 10 minutos · 1 correo",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -11,114 +19,119 @@
             }
           ]
         }
-      },
-      "id": "0b316f4c-6ad7-4dc6-bc3b-3c4232a29ebc",
-      "name": "Cada 10 minutos · 1 correo",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        -304,
-        -480
-      ]
+      }
     },
     {
-      "parameters": {
-        "method": "POST",
-        "url": "={{$env.SHAYTH_APP_URL}}/api/n8n/jobs/claim",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-integration-secret",
-              "value": "={{$env.SHAYTH_INTEGRATION_SECRET}}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "{\"limit\":1}",
-        "options": {}
-      },
-      "id": "543861f4-e076-4165-9f8b-2251b47823d9",
+      "id": "claim",
       "name": "Reclamar trabajos",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -80,
-        -480
-      ]
+        250,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://inflableshayth.vercel.app/api/n8n/jobs/claim",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "{\"limit\":1}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vwe1esTrAZIXOdJK",
+          "name": "Shayth API"
+        }
+      }
     },
     {
-      "parameters": {
-        "fieldToSplitOut": "jobs",
-        "options": {}
-      },
-      "id": "269f15f0-7a2e-40a1-a71e-d4cca4acb361",
+      "id": "split",
       "name": "Separar trabajos",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        144,
-        -480
-      ]
+        500,
+        0
+      ],
+      "parameters": {
+        "fieldToSplitOut": "jobs"
+      }
     },
     {
-      "parameters": {
-        "sendTo": "={{$json.email}}",
-        "subject": "={{$json.subject}}",
-        "message": "={{String($json.html || \"\").replaceAll(\"{{institucion}}\",String($json.institution || \"\")).replaceAll(\"{{contacto}}\",String($json.contact || \"\")).replaceAll(\"{{provincia}}\",String($json.province || \"\")).replaceAll(\"{{empresa}}\",\"Inflables Shayth\")}}",
-        "options": {
-          "appendAttribution": false,
-          "senderName": "Inflables Shayth"
-        }
-      },
-      "id": "8ebf3915-207c-4248-9133-6d9f0c958a7a",
+      "id": "gmail",
       "name": "Enviar con Gmail",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
+      "onError": "continueErrorOutput",
       "position": [
-        368,
-        -480
+        1070,
+        0
       ],
-      "webhookId": "407c1004-a07f-4323-87f0-18b2f3644113",
+      "parameters": {
+        "sendTo": "={{ $('Separar trabajos').item.json.email }}",
+        "subject": "={{ $('Separar trabajos').item.json.subject }}",
+        "emailType": "html",
+        "message": "={{String($(\"Separar trabajos\").item.json.html || \"\").replaceAll(\"\\u007b\\u007binstitucion\\u007d\\u007d\",String($(\"Separar trabajos\").item.json.institution || \"\")).replaceAll(\"\\u007b\\u007bcontacto\\u007d\\u007d\",String($(\"Separar trabajos\").item.json.contact || \"\")).replaceAll(\"\\u007b\\u007bprovincia\\u007d\\u007d\",String($(\"Separar trabajos\").item.json.province || \"\")).replaceAll(\"\\u007b\\u007bempresa\\u007d\\u007d\",\"Inflables Shayth\")}}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Inflables Shayth",
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "catalogo"
+              }
+            ]
+          }
+        },
+        "resource": "message",
+        "operation": "send"
+      },
       "credentials": {
         "gmailOAuth2": {
           "id": "eP8PRBsZMqkEKSK2",
           "name": "Gmail account 2"
         }
       },
-      "onError": "continueErrorOutput"
+      "webhookId": "66c550d6-8f2a-46e7-98f5-acbf1c77de63"
     },
     {
-      "parameters": {
-        "method": "POST",
-        "url": "={{$env.SHAYTH_APP_URL}}/api/n8n/jobs/report",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-integration-secret",
-              "value": "={{$env.SHAYTH_INTEGRATION_SECRET}}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{JSON.stringify({jobId: $('Separar trabajos').item.json.id, status: 'sent', gmailMessageId: $json.id})}}",
-        "options": {}
-      },
-      "id": "cf1005d6-50f5-49f2-ad04-a44f0c74c7ab",
+      "id": "report",
       "name": "Reportar enviado",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        576,
-        -480
-      ]
+        1340,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://inflableshayth.vercel.app/api/n8n/jobs/report",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({jobId: $('Separar trabajos').item.json.id, status: 'sent', gmailMessageId: $json.id})}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vwe1esTrAZIXOdJK",
+          "name": "Shayth API"
+        }
+      }
     },
     {
+      "id": "gmail-trigger",
+      "name": "Nuevas respuestas Gmail",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        460
+      ],
       "parameters": {
         "pollTimes": {
           "item": [
@@ -127,115 +140,151 @@
             }
           ]
         },
-        "simple": false,
         "filters": {
           "q": "in:inbox newer_than:7d"
         },
-        "options": {}
+        "simple": false
       },
-      "id": "b3935288-252a-45cb-a77e-1418016c2799",
-      "name": "Nuevas respuestas Gmail",
-      "type": "n8n-nodes-base.gmailTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        -304,
-        -16
-      ],
       "credentials": {
         "gmailOAuth2": {
-          "id": "eP8PRBsZMqkEKSK2",
-          "name": "Gmail account 2"
+          "id": "omW1M6LlZwSt8WPq",
+          "name": "Gmail account"
         }
       }
     },
     {
-      "parameters": {
-        "method": "POST",
-        "url": "={{$env.SHAYTH_APP_URL}}/api/n8n/replies",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-integration-secret",
-              "value": "={{$env.SHAYTH_INTEGRATION_SECRET}}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{JSON.stringify({gmailMessageId:$json.id,threadId:$json.threadId,from:(typeof $json.from === \"string\" ? $json.from : $json.from?.value?.[0]?.address) || $json.From || $json.headers?.from || \"\",subject:$json.subject || $json.Subject || $json.headers?.subject || \"(Sin asunto)\",bodyText:$json.textPlain || $json.text || $json.body?.text || $json.snippet || \"\",receivedAt:new Date($json.date || $json.headers?.date || Date.now()).toISOString()})}}",
-        "options": {}
-      },
-      "id": "2f9b37a2-b613-4023-ad9f-172cc4b397ba",
+      "id": "post",
       "name": "Registrar respuesta",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -32,
-        -16
-      ]
-    },
-    {
+        320,
+        460
+      ],
       "parameters": {
         "method": "POST",
-        "url": "={{$env.SHAYTH_APP_URL}}/api/n8n/jobs/report",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-integration-secret",
-              "value": "={{$env.SHAYTH_INTEGRATION_SECRET}}"
-            }
-          ]
-        },
+        "url": "https://inflableshayth.vercel.app/api/n8n/replies",
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{JSON.stringify({jobId:$(\"Separar trabajos\").item.json.id,status:\"failed\",error:String($json.error?.message || $json.message || \"Error en Gmail\")})}}",
-        "options": {}
+        "body": "={{JSON.stringify({gmailMessageId:$json.id,threadId:$json.threadId,from:(typeof $json.from === \"string\" ? $json.from : $json.from?.value?.[0]?.address) || $json.From || $json.headers?.from || \"\",subject:$json.subject || $json.Subject || $json.headers?.subject || \"(Sin asunto)\",bodyText:$json.textPlain || $json.text || $json.body?.text || $json.snippet || \"\",receivedAt:new Date($json.date || $json.headers?.date || Date.now()).toISOString()})}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "4eec7299-9204-4a83-abc6-e0bbdde5010c",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vwe1esTrAZIXOdJK",
+          "name": "Shayth API"
+        }
+      }
+    },
+    {
+      "id": "report-failed",
       "name": "Reportar error de envío",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        576,
-        -304
-      ]
+        1340,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://inflableshayth.vercel.app/api/n8n/jobs/report",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({jobId:$(\"Separar trabajos\").item.json.id,status:\"failed\",error:String(typeof $json.error === \"string\" ? $json.error : ($json.error?.message || $json.message || \"Error en Gmail\"))})}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vwe1esTrAZIXOdJK",
+          "name": "Shayth API"
+        }
+      }
     },
     {
-      "parameters": {
-        "content": "## 1 · CAMPAÑAS SALIENTES\nConsulta la cola de trabajos de la PWA (Supabase vía API), envía 1 correo cada 10 minutos y reporta el resultado.\n\n**Antes de activar:** definir `SHAYTH_APP_URL`, `SHAYTH_INTEGRATION_SECRET` en n8n y autorizar Gmail.\n\n**Atención:** no ejecutar en paralelo el antiguo workflow `campaign-worker.json`.",
-        "height": 220,
-        "width": 580
-      },
-      "id": "acc2d936-ccd3-48f2-9f4e-c2e43ba8cae9",
+      "id": "note-send",
       "name": "Guía · campañas",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -368,
-        -864
-      ]
+        0,
+        -420
+      ],
+      "parameters": {
+        "content": "## 1 · CAMPAÑAS + CATÁLOGO NAVIDEÑO ADJUNTO\n\nPrimero subir `Catalogo_Navideno_Inflables_Shayth.pdf` al directorio `public/catalogo-navideno.pdf` del proyecto Next.js desplegado en Vercel.\n\nComprobar que `https://TU-VERCEL/catalogo-navideno.pdf` devuelve el PDF (no HTML, ni login).\n\nEnviar: n8n reclama 1 trabajo cada 10 min, descarga el catálogo como binario `catalogo`, envía con Gmail y reporta éxito/error al backend.\n\n**Antes de activar**: configurar `SHAYTH_APP_URL`, `SHAYTH_INTEGRATION_SECRET`, conectar la credencial Gmail y hacer un envío de prueba a cuenta propia.\n\nNo activar simultáneamente el workflow anterior.",
+        "height": 220,
+        "width": 680
+      }
     },
     {
-      "parameters": {
-        "content": "## 2 · RESPUESTAS ENTRANTES\nLee nuevos correos de Gmail y envía sus datos a `/api/n8n/replies`.\n\nLa API de la PWA debe vincular cada mensaje a una campaña y descartar los que no correspondan.\n\n**Atención:** no ejecutar en paralelo el antiguo workflow `gmail-replies.json`.",
-        "height": 205,
-        "width": 620
-      },
-      "id": "63b4a2fa-f2ef-49ec-a628-14ca1535044b",
+      "id": "note-replies",
       "name": "Guía · respuestas",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -368,
-        208
-      ]
+        -60,
+        670
+      ],
+      "parameters": {
+        "content": "## 2 · RESPUESTAS ENTRANTES\nLee nuevos correos de Gmail y envía sus datos a `/api/n8n/replies`.\n\nLa API de la PWA debe vincular cada mensaje a una campaña y descartar los que no correspondan.\n\n**Atención:** no ejecutar en paralelo el antiguo workflow `gmail-replies.json`.",
+        "height": 205,
+        "width": 620
+      }
+    },
+    {
+      "id": "shayth-download-catalogue-2026",
+      "name": "Descargar catálogo navideño (PDF)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "onError": "continueErrorOutput",
+      "position": [
+        780,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://inflableshayth.vercel.app/catalogo-navideno.pdf",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "catalogo"
+            }
+          },
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "shayth-report-catalogue-download-error-2026",
+      "name": "Reportar error del catálogo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1070,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://inflableshayth.vercel.app/api/n8n/jobs/report",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({jobId: $('Separar trabajos').item.json.id, status: 'failed', error: 'No se pudo descargar el catálogo PDF: ' + String($json.error?.message || $json.message || 'error desconocido')})}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vwe1esTrAZIXOdJK",
+          "name": "Shayth API"
+        }
+      }
     }
   ],
-  "pinData": {},
   "connections": {
     "Reclamar trabajos": {
       "main": [
@@ -252,7 +301,7 @@
       "main": [
         [
           {
-            "node": "Enviar con Gmail",
+            "node": "Descargar catálogo navideño (PDF)",
             "type": "main",
             "index": 0
           }
@@ -298,20 +347,31 @@
           }
         ]
       ]
+    },
+    "Descargar catálogo navideño (PDF)": {
+      "main": [
+        [
+          {
+            "node": "Enviar con Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reportar error del catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "availableInMCP": true
+    "availableInMCP": true,
+    "timezone": "America/Costa_Rica"
   },
-  "versionId": "9b4c5f07-d869-4f52-ac9b-514082986fba",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "728220cc2283d80caadb7bfc405cbba1561c0618ffeed5d966dd6f98a4e382a4"
-  },
-  "nodeGroups": [],
-  "id": "L4IbOFHaeiQhpNa3",
-  "tags": []
+  "active": false
 }
