@@ -44,3 +44,4 @@ next-env.d.ts
 # original brand source kept locally; deployed copy lives in public/
 /Logo.png
 /INFLABLES SHAYTH · Campañas + Respuestas (Unificado).json
+/tmp/

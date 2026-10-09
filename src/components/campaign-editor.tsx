@@ -2,11 +2,20 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Monitor, Smartphone, Save, Play, Send } from "lucide-react";
+type EmailTemplate = {
+  id: string;
+  name: string;
+  subject: string;
+  html: string;
+  is_default: boolean;
+};
 const defaultHtml = `<div style="font-family:Arial;color:#342a43;line-height:1.6"><img src="{{logo_url}}" alt="Inflables Shayth" width="110"><h1 style="color:#9256d9">¡Hola, {{institucion}}!</h1><p>En <strong>Inflables Shayth</strong> creamos experiencias alegres y seguras para actividades escolares.</p><p>Nos encantaría ayudarles a organizar su próxima celebración con una propuesta adaptada a sus necesidades.</p><p><a href="https://wa.me/50664043069" style="background:#9256d9;color:white;padding:12px 18px;border-radius:8px;text-decoration:none">Solicitar cotización</a></p><p>Con cariño,<br>Equipo de Inflables Shayth<br>+506 6404-3069</p><p style="font-size:11px;color:#777">Si no desea recibir más promociones, responda a este correo con la palabra NO o use el enlace de exclusión.</p></div>`;
 export function CampaignEditor() {
   const [html, setHtml] = useState(defaultHtml),
     [mobile, setMobile] = useState(false),
-    [recipients, setRecipients] = useState(0);
+    [recipients, setRecipients] = useState(0),
+    [templates, setTemplates] = useState<EmailTemplate[]>([]),
+    [subject, setSubject] = useState("");
   useEffect(() => {
     fetch("/api/institutions")
       .then((r) => (r.ok ? r.json() : []))
@@ -16,7 +25,16 @@ export function CampaignEditor() {
             .length,
         ),
       );
+    fetch("/api/templates")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((items: EmailTemplate[]) => setTemplates(items));
   }, []);
+  function selectTemplate(id: string) {
+    const template = templates.find((item) => item.id === id);
+    if (!template) return;
+    setHtml(template.html);
+    setSubject(template.subject);
+  }
   async function submit(form: HTMLFormElement, start = false) {
     if (
       start &&
@@ -56,6 +74,23 @@ export function CampaignEditor() {
       <div className="grid grid-cols-[1.05fr_.95fr] gap-5 responsive-grid">
         <section className="card p-6 space-y-4">
           <label>
+            <span className="label">Plantilla</span>
+            <select
+              className="select"
+              defaultValue=""
+              onChange={(event) => selectTemplate(event.target.value)}
+            >
+              <option value="" disabled>
+                Seleccionar plantilla…
+              </option>
+              {templates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
             <span className="label">Nombre interno</span>
             <input
               className="input"
@@ -70,6 +105,8 @@ export function CampaignEditor() {
               className="input"
               name="subject"
               required
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
               placeholder="Una actividad especial para {{institucion}}"
             />
           </label>
@@ -112,6 +149,7 @@ export function CampaignEditor() {
           >
             <iframe
               title="Vista previa"
+              sandbox=""
               className="w-full h-[570px] border-0"
               srcDoc={html
                 .replaceAll("{{institucion}}", "Institución Ejemplo")

@@ -26,6 +26,10 @@ Se reconocen encabezados en español (`nombre`, `correo`, `telefono`, `provincia
 
 Un mensaje aceptado por Gmail se registra como enviado, nunca como entregado. No se usan píxeles de seguimiento.
 
+## Catálogo navideño
+
+El catálogo promocional se publica como PDF original en `/catalogo-navideno.pdf`. La plantilla “Presentación de Servicios + Catálogo Navideño” usa el logo público por HTTPS e indica que el catálogo se adjunta. El workflow n8n descarga ese PDF como binario y lo adjunta desde Gmail; el backend no duplica el adjunto.
+
 ## Verificación
 
 Ejecuta `npm run lint`, `npm run typecheck`, `npm run test` y `npm run build`.
