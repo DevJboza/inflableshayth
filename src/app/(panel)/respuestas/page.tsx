@@ -17,7 +17,7 @@ export default async function Page() {
     <>
       <PageHeader
         title="Respuestas"
-        subtitle="Mensajes sincronizados desde Gmail por el workflow de n8n."
+        subtitle="Mensajes recibidos de escuelas que respondieron a tus campañas."
       />
       <div className="space-y-3">
         {rows.map((r) => (

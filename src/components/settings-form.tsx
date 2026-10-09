@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { toast } from "sonner";
-import { PlugZap } from "lucide-react";
+import { Save } from "lucide-react";
+
 export function SettingsForm({
   initial,
 }: {
@@ -10,58 +11,89 @@ export function SettingsForm({
   const [busy, setBusy] = useState(false);
   async function save(fd: FormData) {
     setBusy(true);
-    const r = await fetch("/api/settings", {
+    const response = await fetch("/api/settings", {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(Object.fromEntries(fd)),
     });
-    if (r.ok) toast.success("Configuración guardada");
-    else toast.error("No se pudo guardar");
+    if (response.ok) toast.success("Cambios guardados");
+    else toast.error("No pudimos guardar los cambios");
     setBusy(false);
   }
-  async function test() {
-    const r = await fetch("/api/settings/test", { method: "POST" }),
-      j = await r.json();
-    if (r.ok) toast.success(j.message);
-    else toast.error(j.error);
-  }
   return (
-    <form action={save} className="card p-6 max-w-3xl">
-      <div className="grid grid-cols-2 gap-4 responsive-grid">
-        {[
-          ["business_name", "Nombre del negocio", "Inflables Shayth"],
-          ["sender_email", "Correo emisor", "inflablesshaythcr@gmail.com"],
-          ["whatsapp", "WhatsApp", "+506 6404-3069"],
-          ["daily_limit", "Límite diario", "40"],
-          ["send_interval_seconds", "Intervalo entre envíos (segundos)", "90"],
-        ].map(([n, l, d]) => (
-          <label key={n}>
-            <span className="label">{l}</span>
-            <input className="input" name={n} defaultValue={initial[n] ?? d} />
-          </label>
-        ))}
-      </div>
-      <label className="block mt-4">
-        <span className="label">Firma comercial</span>
-        <textarea
-          className="textarea"
-          name="signature"
-          rows={4}
-          defaultValue={
-            initial.signature ??
-            "Equipo de Inflables Shayth\nWhatsApp: +506 6404-3069"
-          }
+    <form action={save} className="space-y-5 max-w-3xl">
+      <section className="card p-6">
+        <h2 className="font-extrabold text-lg">Datos del negocio</h2>
+        <p className="muted text-sm mb-5">
+          Información que aparece en los correos.
+        </p>
+        <div className="grid grid-cols-2 gap-4 responsive-grid">
+          <Field
+            name="business_name"
+            label="Nombre del negocio"
+            value={initial.business_name ?? "Inflables Shayth"}
+          />
+          <Field
+            name="sender_email"
+            label="Correo de envío"
+            type="email"
+            value={initial.sender_email ?? "inflablesshaythcr@gmail.com"}
+          />
+          <Field
+            name="whatsapp"
+            label="WhatsApp"
+            value={initial.whatsapp ?? "+506 6404-3069"}
+          />
+        </div>
+        <label className="block mt-4">
+          <span className="label">Firma comercial</span>
+          <textarea
+            className="textarea"
+            name="signature"
+            rows={3}
+            defaultValue={
+              initial.signature ??
+              "Equipo de Inflables Shayth\nWhatsApp: +506 6404-3069"
+            }
+          />
+        </label>
+      </section>
+      <section className="card p-6">
+        <h2 className="font-extrabold text-lg">Protección de envíos</h2>
+        <p className="muted text-sm mb-5">
+          Este límite se aplica entre todas las campañas para proteger la
+          cuenta.
+        </p>
+        <Field
+          name="daily_limit"
+          label="Máximo total de correos por día"
+          type="number"
+          value={initial.daily_limit ?? 20}
         />
-      </label>
-      <div className="flex gap-2 mt-5">
-        <button disabled={busy} className="btn btn-primary">
-          Guardar cambios
-        </button>
-        <button type="button" onClick={test} className="btn btn-secondary">
-          <PlugZap size={17} />
-          Probar n8n
-        </button>
-      </div>
+        <input type="hidden" name="timezone" value="America/Costa_Rica" />
+      </section>
+      <button disabled={busy} className="btn btn-primary">
+        <Save size={17} />
+        {busy ? "Guardando…" : "Guardar cambios"}
+      </button>
     </form>
+  );
+}
+function Field({
+  name,
+  label,
+  value,
+  type = "text",
+}: {
+  name: string;
+  label: string;
+  value: string | number;
+  type?: string;
+}) {
+  return (
+    <label>
+      <span className="label">{label}</span>
+      <input className="input" name={name} type={type} defaultValue={value} />
+    </label>
   );
 }

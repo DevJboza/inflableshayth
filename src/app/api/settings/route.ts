@@ -7,8 +7,8 @@ const schema = z.object({
   sender_email: z.email(),
   whatsapp: z.string().min(8).max(30),
   daily_limit: z.coerce.number().int().min(1).max(500),
-  send_interval_seconds: z.coerce.number().int().min(30).max(3600),
   signature: z.string().max(2000),
+  timezone: z.literal("America/Costa_Rica"),
 });
 export async function PUT(req: NextRequest) {
   await requireSession();

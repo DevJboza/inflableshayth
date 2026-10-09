@@ -12,6 +12,7 @@ type Row = {
   contact_name: string;
   type: string;
   status: string;
+  contact_permission: string;
 };
 export function InstitutionManager() {
   const [rows, setRows] = useState<Row[]>([]),
@@ -47,6 +48,17 @@ export function InstitutionManager() {
     await fetch(`/api/institutions/${id}`, { method: "DELETE" });
     toast.success("Institución eliminada");
     load();
+  }
+  async function permission(id: string, contactPermission: string) {
+    const response = await fetch(`/api/institutions/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ contactPermission }),
+    });
+    if (response.ok) {
+      toast.success("Autorización actualizada");
+      load();
+    } else toast.error("No pudimos actualizar la autorización");
   }
   function csv(file: File) {
     Papa.parse<Record<string, string>>(file, {
@@ -116,7 +128,7 @@ export function InstitutionManager() {
               <th>Institución</th>
               <th>Contacto</th>
               <th>Ubicación</th>
-              <th>Estado</th>
+              <th>Autorización</th>
               <th />
             </tr>
           </thead>
@@ -133,7 +145,16 @@ export function InstitutionManager() {
                 </td>
                 <td>{r.province || "—"}</td>
                 <td>
-                  <span className="badge">{r.status}</span>
+                  <select
+                    className="select !py-1 !text-xs min-w-32"
+                    value={r.contact_permission}
+                    onChange={(event) => permission(r.id, event.target.value)}
+                    aria-label={`Autorización de ${r.name}`}
+                  >
+                    <option>Pendiente</option>
+                    <option>Autorizado</option>
+                    <option>No autorizado</option>
+                  </select>
                 </td>
                 <td>
                   <button
@@ -209,6 +230,22 @@ export function InstitutionManager() {
                     <option key={x}>{x}</option>
                   ))}
                 </select>
+              </label>
+              <label>
+                <span className="label">Permiso para recibir campañas</span>
+                <select
+                  name="contactPermission"
+                  className="select"
+                  defaultValue="Pendiente"
+                >
+                  <option>Pendiente</option>
+                  <option>Autorizado</option>
+                  <option>No autorizado</option>
+                </select>
+                <span className="muted text-xs block mt-1">
+                  Selecciona “Autorizado” únicamente si existe una base válida
+                  para contactarla.
+                </span>
               </label>
             </div>
             <label className="block mt-4">

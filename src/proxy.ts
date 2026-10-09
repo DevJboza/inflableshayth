@@ -6,10 +6,12 @@ export async function proxy(req: NextRequest) {
   try {
     if (token && process.env.SESSION_SECRET)
       valid =
-        (await jwtVerify(
-          token,
-          new TextEncoder().encode(process.env.SESSION_SECRET),
-        )).payload.role === "admin";
+        (
+          await jwtVerify(
+            token,
+            new TextEncoder().encode(process.env.SESSION_SECRET),
+          )
+        ).payload.role === "admin";
   } catch {
     valid = false;
   }

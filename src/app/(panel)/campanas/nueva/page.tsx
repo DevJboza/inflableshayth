@@ -5,7 +5,7 @@ export default function Page() {
     <>
       <PageHeader
         title="Nueva campaña"
-        subtitle="Redacta, previsualiza y confirma antes de crear la cola."
+        subtitle="Cuatro pasos sencillos para preparar y programar tus correos."
       />
       <CampaignEditor />
     </>

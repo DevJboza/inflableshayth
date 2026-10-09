@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { LockKeyhole, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 export default function Login() {
   const [p, setP] = useState(""),
     [error, setError] = useState(""),
@@ -29,9 +30,11 @@ export default function Login() {
     <main className="min-h-screen grid place-items-center p-5">
       <form onSubmit={submit} className="card w-full max-w-[420px] p-8">
         <div className="relative mx-auto mb-5 size-20 rounded-full bg-gradient-to-br from-pink-200 to-purple-300 grid place-items-center overflow-hidden">
-          <img
+          <Image
             src="/logo.png"
             alt="Inflables Shayth"
+            width={80}
+            height={80}
             className="size-full object-cover"
             onError={(e) => {
               e.currentTarget.style.display = "none";

@@ -1,22 +1,21 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Building2,
   Megaphone,
   Inbox,
-  History,
   Settings,
   LogOut,
   Plus,
 } from "lucide-react";
 const nav = [
-  ["/dashboard", "Panel", LayoutDashboard],
-  ["/instituciones", "Instituciones", Building2],
+  ["/dashboard", "Inicio", LayoutDashboard],
+  ["/instituciones", "Escuelas", Building2],
   ["/campanas", "Campañas", Megaphone],
   ["/respuestas", "Respuestas", Inbox],
-  ["/historial", "Historial", History],
   ["/configuracion", "Configuración", Settings],
 ] as const;
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -32,11 +31,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="desktop-sidebar fixed inset-y-0 left-0 w-64 border-r border-[#e9e4f3] bg-white/85 backdrop-blur p-4 z-40">
         <div className="flex items-center gap-3 px-2 py-3 mb-6">
           <div className="size-10 rounded-xl bg-gradient-to-br from-pink-200 to-purple-300 overflow-hidden">
-            <img src="/logo.png" alt="" className="size-full object-cover" />
+            <Image
+              src="/logo.png"
+              alt=""
+              width={40}
+              height={40}
+              className="size-full object-cover"
+            />
           </div>
           <div>
             <b>Shayth Center</b>
-            <div className="muted text-xs">Campaign manager</div>
+            <div className="muted text-xs">Centro de campañas</div>
           </div>
         </div>
         <nav className="space-y-1">

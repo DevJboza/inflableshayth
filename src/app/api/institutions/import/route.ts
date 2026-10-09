@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
       contactName: raw.contacto || raw.contactName || "",
       type: raw.tipo || raw.type || "Otra",
       status: raw.estado || raw.status || "Sin contactar",
+      contactPermission:
+        raw.autorizacion || raw.contactPermission || "Pendiente",
       notes: raw.notas || raw.notes || "",
     });
     if (!p.success) {
@@ -31,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
     const v = p.data;
     const result =
-      await db()`insert into institutions(name,email,phone,province,canton,contact_name,type,status,notes) values(${v.name},${v.email},${v.phone},${v.province},${v.canton},${v.contactName},${v.type},${v.status},${v.notes}) on conflict do nothing returning id`;
+      await db()`insert into institutions(name,email,phone,province,canton,contact_name,type,status,contact_permission,notes) values(${v.name},${v.email},${v.phone},${v.province},${v.canton},${v.contactName},${v.type},${v.status},${v.contactPermission},${v.notes}) on conflict do nothing returning id`;
     if (result.length) imported++;
     else skipped++;
   }

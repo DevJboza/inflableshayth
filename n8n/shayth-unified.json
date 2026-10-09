@@ -3,19 +3,16 @@
   "nodes": [
     {
       "id": "schedule",
-      "name": "Cada 10 minutos · 1 correo",
+      "name": "Cada minuto · control automático",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [
-        0,
-        0
-      ],
+      "position": [0, 0],
       "parameters": {
         "rule": {
           "interval": [
             {
               "field": "minutes",
-              "minutesInterval": 10
+              "minutesInterval": 1
             }
           ]
         }
@@ -26,10 +23,7 @@
       "name": "Reclamar trabajos",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        250,
-        0
-      ],
+      "position": [250, 0],
       "parameters": {
         "method": "POST",
         "url": "https://inflableshayth.vercel.app/api/n8n/jobs/claim",
@@ -52,10 +46,7 @@
       "name": "Separar trabajos",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
-      "position": [
-        500,
-        0
-      ],
+      "position": [500, 0],
       "parameters": {
         "fieldToSplitOut": "jobs"
       }
@@ -66,10 +57,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "onError": "continueErrorOutput",
-      "position": [
-        1070,
-        0
-      ],
+      "position": [1070, 0],
       "parameters": {
         "sendTo": "={{ $('Separar trabajos').item.json.email }}",
         "subject": "={{ $('Separar trabajos').item.json.subject }}",
@@ -102,17 +90,14 @@
       "name": "Reportar enviado",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1340,
-        0
-      ],
+      "position": [1340, 0],
       "parameters": {
         "method": "POST",
         "url": "https://inflableshayth.vercel.app/api/n8n/jobs/report",
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{JSON.stringify({jobId: $('Separar trabajos').item.json.id, status: 'sent', gmailMessageId: $json.id})}}",
+        "body": "={{JSON.stringify({jobId: $('Separar trabajos').item.json.id, status: 'sent', gmailMessageId: $json.id, gmailThreadId: $json.threadId})}}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
@@ -128,10 +113,7 @@
       "name": "Nuevas respuestas Gmail",
       "type": "n8n-nodes-base.gmailTrigger",
       "typeVersion": 1.2,
-      "position": [
-        0,
-        460
-      ],
+      "position": [0, 460],
       "parameters": {
         "pollTimes": {
           "item": [
@@ -157,10 +139,7 @@
       "name": "Registrar respuesta",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        320,
-        460
-      ],
+      "position": [320, 460],
       "parameters": {
         "method": "POST",
         "url": "https://inflableshayth.vercel.app/api/n8n/replies",
@@ -183,10 +162,7 @@
       "name": "Reportar error de envío",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1340,
-        220
-      ],
+      "position": [1340, 220],
       "parameters": {
         "method": "POST",
         "url": "https://inflableshayth.vercel.app/api/n8n/jobs/report",
@@ -209,10 +185,7 @@
       "name": "Guía · campañas",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [
-        0,
-        -420
-      ],
+      "position": [0, -420],
       "parameters": {
         "content": "## 1 · CAMPAÑAS + CATÁLOGO NAVIDEÑO ADJUNTO\n\nPrimero subir `Catalogo_Navideno_Inflables_Shayth.pdf` al directorio `public/catalogo-navideno.pdf` del proyecto Next.js desplegado en Vercel.\n\nComprobar que `https://TU-VERCEL/catalogo-navideno.pdf` devuelve el PDF (no HTML, ni login).\n\nEnviar: n8n reclama 1 trabajo cada 10 min, descarga el catálogo como binario `catalogo`, envía con Gmail y reporta éxito/error al backend.\n\n**Antes de activar**: configurar `SHAYTH_APP_URL`, `SHAYTH_INTEGRATION_SECRET`, conectar la credencial Gmail y hacer un envío de prueba a cuenta propia.\n\nNo activar simultáneamente el workflow anterior.",
         "height": 220,
@@ -224,10 +197,7 @@
       "name": "Guía · respuestas",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [
-        -60,
-        670
-      ],
+      "position": [-60, 670],
       "parameters": {
         "content": "## 2 · RESPUESTAS ENTRANTES\nLee nuevos correos de Gmail y envía sus datos a `/api/n8n/replies`.\n\nLa API de la PWA debe vincular cada mensaje a una campaña y descartar los que no correspondan.\n\n**Atención:** no ejecutar en paralelo el antiguo workflow `gmail-replies.json`.",
         "height": 205,
@@ -240,13 +210,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "onError": "continueErrorOutput",
-      "position": [
-        780,
-        0
-      ],
+      "position": [780, 0],
       "parameters": {
         "method": "GET",
-        "url": "https://inflableshayth.vercel.app/catalogo-navideno.pdf",
+        "url": "={{'https://inflableshayth.vercel.app' + ($('Separar trabajos').item.json.catalog_path || '/catalogo-navideno.pdf')}}",
         "options": {
           "response": {
             "response": {
@@ -263,10 +230,7 @@
       "name": "Reportar error del catálogo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1070,
-        220
-      ],
+      "position": [1070, 220],
       "parameters": {
         "method": "POST",
         "url": "https://inflableshayth.vercel.app/api/n8n/jobs/report",
@@ -326,7 +290,7 @@
         ]
       ]
     },
-    "Cada 10 minutos · 1 correo": {
+    "Cada minuto · control automático": {
       "main": [
         [
           {

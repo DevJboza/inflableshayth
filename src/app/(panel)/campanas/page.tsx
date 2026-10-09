@@ -83,7 +83,12 @@ export default async function Page() {
               return (
                 <tr key={row.id}>
                   <td>
-                    <b>{row.name}</b>
+                    <Link
+                      href={`/campanas/${row.id}`}
+                      className="font-bold text-purple-800"
+                    >
+                      {row.name}
+                    </Link>
                   </td>
                   <td>
                     <b>

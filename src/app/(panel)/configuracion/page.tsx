@@ -13,7 +13,7 @@ export default async function Page() {
     <>
       <PageHeader
         title="Configuración"
-        subtitle="Preferencias comerciales; los secretos permanecen en el servidor."
+        subtitle="Datos del negocio y límites generales de envío."
       />
       <SettingsForm
         initial={Object.fromEntries(rows.map((r) => [r.key, r.value]))}

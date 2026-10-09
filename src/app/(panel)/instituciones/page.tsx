@@ -4,8 +4,8 @@ export default function Page() {
   return (
     <>
       <PageHeader
-        title="Instituciones"
-        subtitle="CRM de escuelas, colegios y organizaciones."
+        title="Escuelas"
+        subtitle="Administra las escuelas y su autorización para recibir campañas."
       />
       <InstitutionManager />
     </>
