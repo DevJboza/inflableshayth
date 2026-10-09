@@ -24,4 +24,5 @@ export const campaignSchema = z.object({
   subject: z.string().min(2).max(200),
   html: z.string().min(10).max(200000),
   scheduledAt: z.string().optional(),
+  idempotencyKey: z.uuid(),
 });

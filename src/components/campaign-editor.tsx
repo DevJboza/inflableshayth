@@ -1,194 +1,234 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Monitor, Smartphone, Save, Play, Send } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Clock3,
+  Monitor,
+  Send,
+  Smartphone,
+} from "lucide-react";
 type EmailTemplate = {
   id: string;
   name: string;
   subject: string;
   html: string;
-  is_default: boolean;
 };
-const defaultHtml = `<div style="font-family:Arial;color:#342a43;line-height:1.6"><img src="{{logo_url}}" alt="Inflables Shayth" width="110"><h1 style="color:#9256d9">¡Hola, {{institucion}}!</h1><p>En <strong>Inflables Shayth</strong> creamos experiencias alegres y seguras para actividades escolares.</p><p>Nos encantaría ayudarles a organizar su próxima celebración con una propuesta adaptada a sus necesidades.</p><p><a href="https://wa.me/50664043069" style="background:#9256d9;color:white;padding:12px 18px;border-radius:8px;text-decoration:none">Solicitar cotización</a></p><p>Con cariño,<br>Equipo de Inflables Shayth<br>+506 6404-3069</p><p style="font-size:11px;color:#777">Si no desea recibir más promociones, responda a este correo con la palabra NO o use el enlace de exclusión.</p></div>`;
 export function CampaignEditor() {
-  const [html, setHtml] = useState(defaultHtml),
-    [mobile, setMobile] = useState(false),
-    [recipients, setRecipients] = useState(0),
-    [templates, setTemplates] = useState<EmailTemplate[]>([]),
-    [subject, setSubject] = useState("");
+  const router = useRouter();
+  const requestKey = useRef(crypto.randomUUID());
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [selected, setSelected] = useState("");
+  const [name, setName] = useState("");
+  const [subject, setSubject] = useState("");
+  const [html, setHtml] = useState("");
+  const [recipients, setRecipients] = useState(0);
+  const [mobile, setMobile] = useState(false);
+  const [busy, setBusy] = useState(false);
   useEffect(() => {
-    fetch("/api/institutions")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((x) =>
-        setRecipients(
-          x.filter((i: { status: string }) => i.status !== "No contactar")
-            .length,
-        ),
+    Promise.all([
+      fetch("/api/templates").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/institutions").then((r) => (r.ok ? r.json() : [])),
+    ]).then(([items, institutions]) => {
+      setTemplates(items);
+      setRecipients(
+        institutions.filter(
+          (i: { status: string }) => i.status !== "No contactar",
+        ).length,
       );
-    fetch("/api/templates")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((items: EmailTemplate[]) => setTemplates(items));
+    });
   }, []);
-  function selectTemplate(id: string) {
+  function chooseTemplate(id: string) {
     const template = templates.find((item) => item.id === id);
     if (!template) return;
-    setHtml(template.html);
+    setSelected(id);
+    setName(template.name);
     setSubject(template.subject);
+    setHtml(template.html);
   }
-  async function submit(form: HTMLFormElement, start = false) {
+  async function startCampaign() {
+    if (!selected) return toast.error("Primero selecciona una plantilla");
+    if (!recipients)
+      return toast.error("No hay instituciones disponibles para contactar");
     if (
-      start &&
       !confirm(
-        `Se crearán trabajos para ${recipients} destinatarios elegibles. ¿Continuar?`,
+        `Se preparará esta campaña para ${recipients} destinatario${recipients === 1 ? "" : "s"}. ¿Deseas continuar?`,
       )
     )
       return;
-    const f = new FormData(form),
-      body = {
-        name: f.get("name"),
-        subject: f.get("subject"),
+    setBusy(true);
+    const response = await fetch("/api/campaigns", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name,
+        subject,
         html,
-        action: start ? "start" : "draft",
-      };
-    const r = await fetch("/api/campaigns", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
+        action: "start",
+        idempotencyKey: requestKey.current,
       }),
-      j = await r.json();
-    if (r.ok)
-      toast.success(
-        start
-          ? `Campaña iniciada: ${j.jobs} trabajos creados`
-          : "Borrador guardado",
-      );
-    else toast.error(j.error);
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      toast.error(result.error || "No fue posible preparar la campaña");
+      setBusy(false);
+      return;
+    }
+    toast.success(
+      `${result.jobs} correo${result.jobs === 1 ? "" : "s"} en cola. El primero saldrá en un máximo de 10 minutos.`,
+      { duration: 7000 },
+    );
+    router.push("/campanas");
+    router.refresh();
   }
+  const preview = html
+    .replaceAll("{{institucion}}", "Institución Ejemplo")
+    .replaceAll("{{contacto}}", "María")
+    .replaceAll("{{provincia}}", "San José")
+    .replaceAll("{{empresa}}", "Inflables Shayth");
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        submit(e.currentTarget);
-      }}
-    >
-      <div className="grid grid-cols-[1.05fr_.95fr] gap-5 responsive-grid">
-        <section className="card p-6 space-y-4">
-          <label>
-            <span className="label">Plantilla</span>
-            <select
-              className="select"
-              defaultValue=""
-              onChange={(event) => selectTemplate(event.target.value)}
+    <div className="space-y-5">
+      <section className="card p-6">
+        <Step
+          number={1}
+          title="Elige qué deseas enviar"
+          detail="La plantilla ya incluye diseño, texto y enlaces."
+        />
+        <div className="grid grid-cols-2 gap-3 responsive-grid">
+          {templates.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              onClick={() => chooseTemplate(template.id)}
+              className={`text-left rounded-2xl border p-4 transition ${selected === template.id ? "border-purple-500 bg-purple-50 ring-2 ring-purple-100" : "border-slate-200 bg-white hover:border-purple-300"}`}
             >
-              <option value="" disabled>
-                Seleccionar plantilla…
-              </option>
-              {templates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span className="label">Nombre interno</span>
-            <input
-              className="input"
-              name="name"
-              required
-              placeholder="Promoción regreso a clases"
+              <div className="flex justify-between gap-3">
+                <b>{template.name}</b>
+                {selected === template.id && (
+                  <Check className="text-purple-600" size={19} />
+                )}
+              </div>
+              <p className="muted text-sm mt-2">{template.subject}</p>
+            </button>
+          ))}
+        </div>
+      </section>
+      {selected && (
+        <section className="grid grid-cols-[.7fr_1.3fr] gap-5 responsive-grid">
+          <div className="card p-6">
+            <Step
+              number={2}
+              title="Revisa los detalles"
+              detail="Puedes ajustar el nombre y asunto."
             />
-          </label>
-          <label>
-            <span className="label">Asunto</span>
-            <input
-              className="input"
-              name="subject"
-              required
-              value={subject}
-              onChange={(event) => setSubject(event.target.value)}
-              placeholder="Una actividad especial para {{institucion}}"
-            />
-          </label>
-          <div>
-            <span className="label">Contenido HTML</span>
-            <textarea
-              className="textarea font-mono text-xs"
-              rows={18}
-              value={html}
-              onChange={(e) => setHtml(e.target.value)}
-            />
-            <p className="muted text-xs mt-2">
-              Variables:{" "}
-              {"{{institucion}}, {{contacto}}, {{provincia}}, {{empresa}}"}
-            </p>
+            <label className="block mb-4">
+              <span className="label">Nombre para identificarla</span>
+              <input
+                className="input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+            <label className="block">
+              <span className="label">Asunto del correo</span>
+              <input
+                className="input"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+              />
+            </label>
+            <details className="mt-5 border-t border-slate-100 pt-4">
+              <summary className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-600">
+                <ChevronDown size={16} />
+                Opciones avanzadas
+              </summary>
+              <textarea
+                className="textarea font-mono text-xs mt-3"
+                rows={10}
+                value={html}
+                onChange={(e) => setHtml(e.target.value)}
+              />
+            </details>
           </div>
-        </section>
-        <section>
-          <div className="flex justify-between items-center mb-3">
-            <b>Vista previa</b>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                className="btn btn-secondary !p-2"
-                onClick={() => setMobile(false)}
-              >
-                <Monitor size={17} />
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary !p-2"
-                onClick={() => setMobile(true)}
-              >
-                <Smartphone size={17} />
-              </button>
+          <div>
+            <div className="flex justify-between items-center mb-3">
+              <b>Así se verá el correo</b>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  aria-label="Vista de computadora"
+                  className="btn btn-secondary !p-2"
+                  onClick={() => setMobile(false)}
+                >
+                  <Monitor size={17} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Vista de teléfono"
+                  className="btn btn-secondary !p-2"
+                  onClick={() => setMobile(true)}
+                >
+                  <Smartphone size={17} />
+                </button>
+              </div>
+            </div>
+            <div
+              className={`card bg-white mx-auto overflow-hidden ${mobile ? "max-w-[375px]" : "w-full"}`}
+            >
+              <iframe
+                title="Vista previa"
+                sandbox=""
+                className="w-full h-[610px] border-0"
+                srcDoc={preview}
+              />
             </div>
           </div>
-          <div
-            className={`card bg-white mx-auto overflow-hidden transition-all ${mobile ? "max-w-[375px]" : "w-full"}`}
-          >
-            <iframe
-              title="Vista previa"
-              sandbox=""
-              className="w-full h-[570px] border-0"
-              srcDoc={html
-                .replaceAll("{{institucion}}", "Institución Ejemplo")
-                .replaceAll("{{contacto}}", "María")
-                .replaceAll("{{provincia}}", "San José")
-                .replaceAll("{{empresa}}", "Inflables Shayth")}
-            />
-          </div>
         </section>
-      </div>
-      <div className="sticky bottom-4 card p-3 mt-5 flex justify-between items-center gap-3">
-        <span className="muted text-sm">
-          <b>{recipients}</b> destinatarios elegibles
-        </span>
-        <div className="flex gap-2">
-          <button className="btn btn-secondary">
-            <Save size={17} />
-            Guardar borrador
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() =>
-              toast.info("Configura Gmail/n8n para enviar pruebas reales")
-            }
-          >
-            <Send size={17} />
-            Enviar prueba
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={(e) => submit(e.currentTarget.form!, true)}
-          >
-            <Play size={17} />
-            Iniciar campaña
-          </button>
+      )}
+      <section className="card p-5 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <div className="flex items-center gap-2 font-bold">
+            <Clock3 size={18} className="text-purple-600" />
+            {recipients} destinatario{recipients === 1 ? "" : "s"}
+          </div>
+          <p className="muted text-sm mt-1">
+            Los correos salen de uno en uno. El primero puede tardar hasta 10
+            minutos.
+          </p>
         </div>
+        <button
+          type="button"
+          disabled={busy || !selected || !recipients}
+          onClick={startCampaign}
+          className="btn btn-primary min-w-48 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Send size={18} />
+          {busy ? "Preparando…" : "Confirmar y enviar"}
+        </button>
+      </section>
+    </div>
+  );
+}
+function Step({
+  number,
+  title,
+  detail,
+}: {
+  number: number;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <div className="flex items-start gap-4 mb-6">
+      <div className="size-9 shrink-0 rounded-full bg-purple-600 text-white grid place-items-center font-bold">
+        {number}
       </div>
-    </form>
+      <div>
+        <h2 className="font-bold text-lg">{title}</h2>
+        <p className="muted text-sm">{detail}</p>
+      </div>
+    </div>
   );
 }

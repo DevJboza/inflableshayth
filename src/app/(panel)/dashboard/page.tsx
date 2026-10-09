@@ -16,15 +16,22 @@ type Stats = {
   sent: number;
   replies: number;
   interested: number;
+  queued: number;
 };
 export default async function Dashboard() {
-  let s: Stats = { institutions: 0, sent: 0, replies: 0, interested: 0 },
+  let s: Stats = {
+      institutions: 0,
+      sent: 0,
+      replies: 0,
+      interested: 0,
+      queued: 0,
+    },
     activities: { action: string; created_at: string }[] = [];
   let ready = hasDatabase();
   if (ready)
     try {
       const rows =
-        await query<Stats>`select (select count(*)::int from institutions where deleted_at is null) institutions,(select count(*)::int from email_messages where status='sent') sent,(select count(*)::int from replies) replies,(select count(*)::int from institutions where status in ('Interesado','Cotización solicitada','Cliente')) interested`;
+        await query<Stats>`select (select count(*)::int from institutions where deleted_at is null) institutions,(select count(*)::int from email_messages where status='sent') sent,(select count(*)::int from replies) replies,(select count(*)::int from institutions where status in ('Interesado','Cotización solicitada','Cliente')) interested,(select count(*)::int from email_jobs where status in ('pending','claimed')) queued`;
       s = rows[0];
       activities = await query<{
         action: string;
@@ -108,7 +115,9 @@ export default async function Dashboard() {
                 <Wifi size={17} />
                 Gmail
               </span>
-              <span className="badge">Por verificar</span>
+              <span className="badge">
+                {s.sent > 0 ? "Operativo" : "Listo para probar"}
+              </span>
             </div>
             <div className="flex items-center justify-between py-2">
               <span className="flex gap-2 items-center">
@@ -116,14 +125,16 @@ export default async function Dashboard() {
                 n8n
               </span>
               <span className="badge">
-                {process.env.N8N_WEBHOOK_URL ? "Configurado" : "Pendiente"}
+                {process.env.N8N_INTEGRATION_SECRET ? "Conectado" : "Pendiente"}
               </span>
             </div>
           </div>
           <div className="card p-5">
             <h2 className="font-bold">Próximos envíos</h2>
             <p className="muted text-sm mt-4">
-              No hay campañas programadas próximas.
+              {s.queued > 0
+                ? `${s.queued} correo${s.queued === 1 ? "" : "s"} esperando envío. El sistema los procesará automáticamente.`
+                : "No hay correos esperando envío."}
             </p>
           </div>
         </div>
